@@ -1,0 +1,1 @@
+# Парсим и отдаем потом по api домашнее задание с https://class.sirius-ft.ru/journal-app
