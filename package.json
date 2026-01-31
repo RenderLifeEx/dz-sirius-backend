@@ -4,7 +4,15 @@
   "description": "Парсим и отдаем потом по api домашнее задание с сайта https://class.sirius-ft.ru/journal-app",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/src/index.js",
+    "dev": "NODE_ENV=development ts-node-dev src/index.ts",
+    "build": "tsc",
+    "seed": "tsx src/db/seed.ts",
+    "seed:clear": "tsx src/db/seed.ts --clear",
+    "migrate": "drizzle-kit migrate",
+    "migrate:push": "drizzle-kit push",
+    "migrate:generate": "drizzle-kit generate",
+    "studio": "drizzle-kit studio --port=3003"
   },
   "repository": {
     "type": "git",
