@@ -1,1 +1,2 @@
-# Парсим и отдаем потом по api домашнее задание с https://class.sirius-ft.ru/journal-app
+# Парсим и отдаем потом по api домашнее задание
+с сайта https://class.sirius-ft.ru/journal-app
