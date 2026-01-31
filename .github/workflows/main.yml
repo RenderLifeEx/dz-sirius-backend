@@ -124,11 +124,11 @@ jobs:
 
             # Применение миграций
             # echo "⚠️ Применение миграций"
-            # pnpm run migrate
+            pnpm run migrate
 
             # Создание контента
             # echo "⚠️ Добавление начальных тестовых данных"
-            # pnpm run seed
+            pnpm run seed
 
             # Запуск процесса
             pm2 start ecosystem.config.js --env production
