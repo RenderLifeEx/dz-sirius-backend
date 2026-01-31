@@ -1,0 +1,44 @@
+{
+  "name": "Парсер домашнего задания",
+  "version": "1.0.0",
+  "description": "Парсим и отдаем потом по api домашнее задание с сайта https://class.sirius-ft.ru/journal-app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RenderLifeEx/dz-sirius.git"
+  },
+  "keywords": [],
+  "author": "Renderlife",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RenderLifeEx/dz-sirius/issues"
+  },
+  "homepage": "https://github.com/RenderLifeEx/dz-sirius#readme",
+  "dependencies": {
+    "axios": "^1.13.4",
+    "body-parser": "^2.2.2",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
+    "node-cron": "^4.2.1",
+    "pg": "^8.18.0",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.4",
+    "@types/body-parser": "^1.19.6",
+    "@types/cheerio": "^1.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

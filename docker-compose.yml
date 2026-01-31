@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:17.2-alpine3.20
+    container_name: sirius-dz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sirius-dz-app
+      DB_HOST: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - todo_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  todo_postgres_data:

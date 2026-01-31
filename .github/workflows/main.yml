@@ -1,0 +1,162 @@
+name: Deploy to production server
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '**-prod**'
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.MN_TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          format: markdown
+          message: |
+            *♻️ Деплой запущен*
+            *🌍 Сервер:* Мечта
+            *📱 Приложение:* «SiriusDZ»
+            *🛠️ Тип:* Backend
+
+      - name: Git clone repository
+        uses: actions/checkout@v4
+
+      - name: Create BZIP deployment package
+        run: tar -cjf appBackend.tar.bz2 .env.development.local ./*
+
+      - name: Copy file to serve
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: appBackend.tar.bz2
+          target: ~/uploads/
+
+      - name: Deploy v4
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            TARGET_DIR="/var/www/${{ secrets.BACKEND_FOLDER }}"
+            NVM_DIR="/usr/local/nvm"
+
+            if [ ! -d "$TARGET_DIR" ]; then
+              echo "::error::Critical: Target directory $TARGET_DIR does not exist!"
+              exit 1
+            fi
+
+            cd $TARGET_DIR || exit 1
+
+            # Имя процесса из ecosystem.config.js
+            APP_NAME="sirius-dz-backend"
+
+            # Удаление старого процесса
+            if pm2 list | grep -q $APP_NAME; then
+              pm2 stop $APP_NAME
+              sleep 5
+              pm2 delete $APP_NAME
+            else
+              echo "❇️ Process $APP_NAME not found, skipping..."
+            fi
+
+            # Удаляет все кроме папки node_modules
+            ls | grep -v "\(node_modules\)" | xargs rm -rfv
+
+            # Распаковка и удаление архива
+            tar -C ./ -xjf ~/uploads/appBackend.tar.bz2
+            rm -rf ~/uploads/appBackend.tar.bz2
+
+            # Копирование .env если отсутствует
+            if [ ! -f ".env" ]; then
+              cp .env.development.local .env
+              echo "✅ .env создан из dev версии"
+            fi
+
+            # Загрузка NVM (ваша конфигурация)
+            export NVM_DIR="$NVM_DIR"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # Проверка что NVM загрузился
+            if ! command -v nvm &> /dev/null; then
+              echo "::error::NVM not loaded properly!"
+              exit 1
+            fi
+
+            # Установка нужной версии Node.js
+            nvm install lts/iron
+            nvm use lts/iron
+
+            # Проверка версии Node.js
+            echo "❇️ Using Node.js version: $(node -v)"
+            echo "❇️ Using npm version: $(npm -v)"
+
+            # Установка зависимостей
+            pnpm install --force
+
+            # Компиляция ts в js
+            pnpm run build
+
+            # Создание контейнера
+            docker compose -p sirius-dz-app up -d
+
+            # Ожидание готовности PostgreSQL
+            echo "❇️ Waiting for PostgreSQL to become ready..."
+            for i in {1..10}; do
+              if docker exec sirius-dz-postgres pg_isready -U postgres; then
+                echo "✅ PostgreSQL is ready!"
+                break
+              else
+                echo "❌ PostgreSQL not ready yet, attempt $i/10..."
+                sleep 3
+              fi
+            done
+
+            # Применение миграций
+            # echo "⚠️ Применение миграций"
+            # pnpm run migrate
+
+            # Создание контента
+            # echo "⚠️ Добавление начальных тестовых данных"
+            # pnpm run seed
+
+            # Запуск процесса
+            pm2 start ecosystem.config.js --env production
+            pm2 save
+
+      - name: Success Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.MN_TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          format: markdown
+          message: |
+            *✅ Деплой успешно завершен*
+            *🌍 Сервер:* Мечта
+            *📱 Приложение:* «SiriusDZ»
+            *🛠️ Тип:* Backend
+            *Название коммита:* _${{ github.event.commits[0].message }}_
+
+      - name: Failed Notification
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.MN_TG_CHAT_ID }}
+          token: ${{ secrets.TG_BOT_TOKEN }}
+          format: markdown
+          message: |
+            *❌ Деплой завершен неудачей*
+            *🌍 Сервер:* Мечта
+            *📱 Приложение:* ««SiriusDZ»»
+            *🛠️ Тип:* Backend
+            *Название коммита:* _${{ github.event.commits[0].message }}_
