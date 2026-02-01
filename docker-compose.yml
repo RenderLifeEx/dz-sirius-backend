@@ -13,7 +13,7 @@ services:
     ports:
       - "5436:5432"
     volumes:
-      - todo_postgres_data:/var/lib/postgresql/data
+      - sirius-dz_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  todo_postgres_data:
+  sirius-dz_postgres_data:
