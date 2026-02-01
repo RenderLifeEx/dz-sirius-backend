@@ -1,1 +1,0 @@
-ALTER TABLE "homework" DROP COLUMN "test";

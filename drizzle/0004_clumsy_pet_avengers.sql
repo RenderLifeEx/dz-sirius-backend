@@ -1,1 +1,0 @@
-ALTER TABLE "homework" ADD COLUMN "test" text;
