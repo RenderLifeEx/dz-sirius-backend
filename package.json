@@ -8,10 +8,10 @@
     "dev": "NODE_ENV=development ts-node-dev src/index.ts",
     "build": "tsc",
     "seed:clear": "tsx src/db/seed.ts --clear",
-    "migrate": "drizzle-kit migrate",
-    "migrate:push": "drizzle-kit push",
-    "migrate:generate": "drizzle-kit generate",
-    "studio": "drizzle-kit studio --port=3003"
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio --port=3003"
   },
   "repository": {
     "type": "git",

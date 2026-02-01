@@ -11,5 +11,5 @@ export const homework = pgTable("homework", {
     updatedAt: timestamp("updated_at", { withTimezone: true })
         .notNull()
         .defaultNow()
-        .$onUpdate(() => new Date()),
+        .$onUpdate(() => new Date())
 });
