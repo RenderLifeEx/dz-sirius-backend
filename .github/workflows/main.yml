@@ -108,7 +108,7 @@ jobs:
             pnpm run build
 
             # Создание контейнера
-            docker compose -p sirius-dz-app up -d
+            # docker compose -p sirius-dz-app up -d
 
             # Ожидание готовности PostgreSQL
             echo "❇️ Waiting for PostgreSQL to become ready..."
@@ -125,10 +125,6 @@ jobs:
             # Применение миграций
             echo "⚠️ Применение миграций"
             pnpm run migrate
-
-            # Создание контента
-            echo "⚠️ Добавление начальных тестовых данных"
-            pnpm run seed
 
             # Запуск процесса
             pm2 start ecosystem.config.js --env production

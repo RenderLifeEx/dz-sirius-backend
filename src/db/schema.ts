@@ -1,9 +1,15 @@
-import { pgTable, serial, text, boolean, doublePrecision } from "drizzle-orm/pg-core";
+import {
+    pgTable,
+    text,
+    jsonb,
+    timestamp
+} from "drizzle-orm/pg-core";
 
-export const todos = pgTable("todos", {
-    id: serial("id").primaryKey(),
-    title: text("title").notNull(),
-    completed: boolean("completed").default(false),
-    position: doublePrecision(),
-    desc: text("desc").default(''),
+export const homework = pgTable("homework", {
+    date: text("date").primaryKey(), // "26.01.2026" — строка, уникальный ключ
+    tasks: jsonb("tasks").$type<Record<string, string>>().notNull().default({}),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
 });

@@ -1,5 +1,4 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-//import { drizzle } from "drizzle-orm/node-postgres";
 import postgres from "postgres";
 import * as schema from "./schema";
 import "dotenv/config";
@@ -21,7 +20,7 @@ export const sql = postgres(databaseUrl, {
         undefined: null,
     },
     connection: {
-        application_name: "todo-app",
+        application_name: "sirius-dz-app",
     },
     // Добавляем параметры для лучшей диагностики
     // onnotice: isDev ? console.log : undefined,

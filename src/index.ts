@@ -1,7 +1,8 @@
 import express from "express";
-import todoRoutes from "./routes/todos";
+import homeworkRoutes from "./routes/homework";
 import cors from "cors";
 import bodyParser from "body-parser";
+import { startScheduler } from './services/scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,7 +18,9 @@ if (isDev) {
 }
 
 app.use(bodyParser.json());
-app.use("/todos", todoRoutes);
+app.use("/homework", homeworkRoutes);
+
+startScheduler();
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
