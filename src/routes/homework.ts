@@ -36,7 +36,6 @@ router.get("/next-day", async (_, res) => {
                 .json({ message: "Нет домашнего задания на след учебный день" });
         }
 
-        console.log('✅ data', tasks)
         const array = Object.entries(tasks).map(([subject, task]) => ({
             subject,
             task,
