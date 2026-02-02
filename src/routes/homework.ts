@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { getTodayHomework, getNextWeekdayHomework } from "../db/homework";
+import { getTodayHomework, getNextWeekdayHomework, upsertHomework } from "../db/homework";
 
 const router = Router();
 
@@ -45,6 +45,33 @@ router.get("/next-day", async (_, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Ошибка сервера" });
+    }
+});
+
+router.post("/test", async (req, res) => {
+    try {
+        const newHomework = { 'test': '123' }
+        await upsertHomework("26.01.2026", newHomework);
+        console.log(
+            `test Сохранено`,
+        );
+
+        res.json(newHomework);
+    } catch (error: unknown) { // Явно указываем тип unknown
+        let errorMessage = "Unknown error occurred";
+
+        // Проверяем тип ошибки
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+
+        res.status(500).json({
+            status: "error",
+            message: "Internal server error",
+            details: errorMessage
+        });
     }
 });
 
