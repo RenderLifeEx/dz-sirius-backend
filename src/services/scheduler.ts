@@ -57,6 +57,6 @@ export function startScheduler() {
     // Первый запуск сразу
     fetchAndSave();
 
-    // Каждые 5 минут
-    setInterval(fetchAndSave, 30 * 60 * 1000);
+    // Каждые 30 минут
+    setInterval(fetchAndSave, 1 * 60 * 1000);
 }

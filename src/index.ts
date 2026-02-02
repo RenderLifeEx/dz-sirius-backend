@@ -17,10 +17,10 @@ if (isDev) {
     }));
 }
 
+startScheduler();
+
 app.use(bodyParser.json());
 app.use("/homework", homeworkRoutes);
-
-startScheduler();
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
