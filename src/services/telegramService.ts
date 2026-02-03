@@ -2,8 +2,8 @@ import axios from "axios";
 import { Lesson } from "./parser";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
-const TELEGRAM_CHAT_ID = DEBUG_SEND_EVERY_MINUTE ? process.env.TG_TEST_CHANEL_ID :process.env.TG_DZ_CHANEL_ID;
+const DEBUG_SEND_TEST_CHANEL = process.env.DEBUG_SEND_TEST_CHANEL === 'true';
+const TELEGRAM_CHAT_ID = DEBUG_SEND_TEST_CHANEL ? process.env.TG_TEST_CHANEL_ID :process.env.TG_DZ_CHANEL_ID;
 
 export async function sendTelegramNotification(
     date: string,
@@ -33,14 +33,14 @@ export async function sendTelegramNotification(
         "🔟",
     ];
 
-    const lines: string[] = [`*на ${date}*`, ""];
+    const lines: string[] = [`*ДЗ на ${date}*`, ""];
 
     homeworkItems.forEach((item, index) => {
         const emoji = index < 10 ? emojiNumbers[index] : `${index + 1}.`;
         const taskText = item.task.trim() || "—";
 
         lines.push(`${emoji} *${item.subject}*`);
-        lines.push(`   ${taskText}`);
+        lines.push(`      ${taskText}`);
         lines.push("");
     });
 
