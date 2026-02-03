@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-interface Lesson {
+export interface Lesson {
     subject: string;
     task: string;
 }
