@@ -59,3 +59,29 @@ export async function sendTelegramNotification(
         console.error("Ошибка отправки в Telegram:", err);
     }
 }
+
+export async function sendTelegramAuthErrorNotification() {
+    const TG_TEST_CHANEL_ID = process.env.TG_TEST_CHANEL_ID;
+
+    if (!TELEGRAM_BOT_TOKEN || !TG_TEST_CHANEL_ID) {
+        console.warn(
+            "Telegram токен или TG_TEST_CHANEL_ID не заданы → уведомление не отправлено",
+        );
+        return;
+    }
+
+    const message = "⚠️ *Ошибка авторизации*: парсер вернул пустой массив.";
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    try {
+        await axios.post(url, {
+            chat_id: TG_TEST_CHANEL_ID,
+            text: message,
+            parse_mode: "Markdown",
+        });
+        console.log("Уведомление об ошибке авторизации отправлено в Telegram");
+    } catch (err) {
+        console.error("Ошибка отправки уведомления об ошибке авторизации в Telegram:", err);
+    }
+}

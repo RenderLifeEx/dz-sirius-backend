@@ -1,6 +1,6 @@
 import { fetchAndParseDiary } from "./parser";
 import { upsertHomework, getNextWeekdayHomework } from "../db/homework";
-import { sendTelegramNotification } from "./telegramService";
+import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./telegramService";
 
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
 
@@ -47,14 +47,8 @@ function scheduleNextNotification() {
     const dayOfWeek = now.getDay(); // 0=вс, 1=пн, ..., 6=сб
 
     // Определяем, в какое время сегодня нужно отправить (если ещё не отправляли)
-    let targetHour = 18;
+    let targetHour = 17;
     let targetMinute = 40;
-
-    // Чт и Пт — 17:50
-    if (dayOfWeek === 4 || dayOfWeek === 5) {
-        targetHour = 17;
-        targetMinute = 50;
-    }
 
     // Только пн-пт
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
@@ -124,6 +118,12 @@ export function startScheduler() {
             );
             const currentWeekDays = await fetchAndParseDiary(0);
 
+            if (currentWeekDays.length === 0) {
+                console.warn("Парсер вернул пустой массив для текущей недели.");
+                await sendTelegramAuthErrorNotification();
+                return;
+            }
+
             for (const day of currentWeekDays) {
                 const tasks: Record<string, string> = {};
                 day.lessons.forEach((lesson) => {
@@ -169,7 +169,7 @@ export function startScheduler() {
     fetchAndSave();
 
     // Каждые 30 минут
-    setInterval(fetchAndSave, 30 * 60 * 1000);
+    setInterval(fetchAndSave, 10 * 60 * 1000);
 
     // Планирование отправки уведомлений
     console.log("Запуск планировщика уведомлений Telegram...");

@@ -11,6 +11,7 @@ interface Day {
     lessons: Lesson[];
 }
 
+// https://class.sirius-ft.ru/authorize?force_login=yes_please
 export async function fetchAndParseDiary(
     weekOffset: number = 0,
 ): Promise<Day[]> {
@@ -37,7 +38,7 @@ export async function fetchAndParseDiary(
     };
 
     const cookies =
-        "ej_fp=44da03879e9bb1a630f5b583c9f63664; ej_id=ecb8a0f4-68a9-49f5-b766-cf1964fccb0f; ej_check=b7c9d16013e213a33263a72f0a585a46; _ym_uid=1769585314549787020; _ym_d=1769585314; schdomain=sirs0001; ej_fp=44da03879e9bb1a630f5b583c9f63664; ej_id=4c4247b5-51d5-4364-bd58-ce52590c62b9; ej_check=88ac932fbd892724edd2f9a66467945f; ej_id=ecb8a0f4-68a9-49f5-b766-cf1964fccb0f; ej_check=b7c9d16013e213a33263a72f0a585a46; _ym_isad=2; ej_fonts=9bf2d9ee388d305bcbcd6a87442a682f3609650a; school_domain=sirs0001; jwt_v_2=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJlajpzaXJzOnNpcnMwMDAxIiwiYXVkIjoiZWo6c2Vzc24iLCJqdGkiOiIyYzAxNzBlZDA4OTg5MDIwYmRjNjJkNTVlOTUzYmRkOSIsIm5iZiI6MTc3MDEwMDc1MywiaWF0IjoxNzcwMTAwNzUzLCJleHAiOjE3NzAxOTQzNTMsImRvbWFpbiI6InNpcnMwMDAxIiwic2VnbWVudCI6InNpcnMiLCJ1aWQiOjIyOTM3LCJtcCI6ZmFsc2V9.gc4WSYJAOaSV5NYZC7Yxx8EDUBTboQ34UlDiP8k9WDxy2aKmGyBP6G-KnkqfV_xq_d3ebwj9qGI4-KxEWjIHqP6wn22xhaFXv3TF4bou4hJ3Cl90aCFg_WYEdRDgJ9MWoQ49CKzyq4WaOfYjtIr4jq8TlIQ5BeXMdWz5rZyOs4ac7xE1pkgmG7x5Lzo-ZLRHvL_WUOVDACcnbJuUWGUF6DkU0_6PQqjl-OO7YBaL02BLZ-SJuVniI_X4-RHCtmD36r1OF---9j0dSRh7N0L4LqrIl8PFltfD4OdwhTo3xx3OOrhrzs4UzGddc1ybIzNNYv1wZDE1aI9C1WjA1ZoGow; _ym_visorc=w";
+        "ej_fp=44da03879e9bb1a630f5b583c9f63664; ej_id=ecb8a0f4-68a9-49f5-b766-cf1964fccb0f; ej_check=b7c9d16013e213a33263a72f0a585a46; _ym_uid=1769585314549787020; _ym_d=1769585314; ej_id=4c4247b5-51d5-4364-bd58-ce52590c62b9; ej_check=88ac932fbd892724edd2f9a66467945f; ej_id=ecb8a0f4-68a9-49f5-b766-cf1964fccb0f; _ym_isad=2; ej_fonts=9bf2d9ee388d305bcbcd6a87442a682f3609650a; ej_fp=44da03879e9bb1a630f5b583c9f63664; _ym_visorc=w; ej_check=b7c9d16013e213a33263a72f0a585a46; school_domain=sirs0001; jwt_v_2=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJlajpzaXJzOnNpcnMwMDAxIiwiYXVkIjoiZWo6c2Vzc24iLCJqdGkiOiIwOWIyNTliMGI1OGJhOGVlOWQ2Y2Q4NzdhODQ4ZDkwNSIsIm5iZiI6MTc3MDIyNDk2NiwiaWF0IjoxNzcwMjI0OTY2LCJleHAiOjE3NzAzMTg1NjYsImRvbWFpbiI6InNpcnMwMDAxIiwic2VnbWVudCI6InNpcnMiLCJ1aWQiOjIyOTM3LCJtcCI6ZmFsc2V9.aWWKZuH-G4iTv7mdPbAh_gAUppUuGGME4qy9cBdNV7YEQaqzXvw6se6pzkvvXiChD3NHky7rqQCEqYnjAVX6SvUvm3miJcGl31be5JqGtedQS19VTi-TObKV3ncZAdFter109jFnaB04Ix4X4WLqqjz_QbfNgQz-RUeqRKyTnGRs9V25pUBlz3frzsJ3lQZGDxKyXTi8ZnoHk_zGb5Ha8c2AtCMAdpcA5qA_p33r6QbxJQvntbAdOSt9h04AJ2mdIqPC2kjFGiGRfVfZn93mw3xDGDjEm-y6Vak1Mycft6Ejmq69Yn-3XfYKcMJJ6hk1yoxc_iazylrDJootg5iytw; schdomain=sirs0001";
 
     try {
         const response = await axios.get(url, {
