@@ -79,9 +79,11 @@ router.post("/test-insert-bd", async (req, res) => {
 router.get("/test-parser", async (req, res) => {
     try {
         const currentWeekDays = await fetchAndParseDiary(0);
+        const currentWeekDays2 = await fetchAndParseDiary(-1);
         console.log(
             `✅ Результат парсинга`,
-            currentWeekDays
+            currentWeekDays,
+            currentWeekDays2
         );
 
         res.json(currentWeekDays);

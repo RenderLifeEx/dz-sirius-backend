@@ -77,23 +77,46 @@ async function refreshSession(): Promise<string> {
             // но иногда сессия может устанавливаться через другие механизмы — проверим тело ответа
         }
 
-        // Формируем новую строку cookies
-        let newCookies = cachedCookies; // сохраняем старые, если новые не пришли
+        // --- ИСПРАВЛЕННАЯ ЛОГИКА ОБРАБОТКИ КУКОВ ---
 
-        if (setCookieHeaders) {
-            const newParts = setCookieHeaders
-                .map((c: string) => c.split(";")[0].trim())
-                .filter(Boolean);
-
-            if (newParts.length > 0) {
-                newCookies = [
-                    ...new Set([
-                        ...newCookies.split("; ").filter(Boolean),
-                        ...newParts,
-                    ]),
-                ].join("; ");
-            }
+        // 1. Парсим текущие куки в объект { name: value }
+        const cookiesMap: Record<string, string> = {};
+        if (cachedCookies) {
+            cachedCookies.split(";").forEach((cookie) => {
+                const parts = cookie.trim().split("=");
+                if (parts.length >= 1) {
+                    const name = parts[0];
+                    const value = parts.slice(1).join("="); // на случай, если в значении есть =
+                    if (name) cookiesMap[name] = value;
+                }
+            });
         }
+
+        // 2. Обновляем/добавляем/удаляем куки из ответа сервера
+        if (setCookieHeaders) {
+            setCookieHeaders.forEach((c) => {
+                // Берем только часть "name=value", отсекая атрибуты вроде Path; Secure; HttpOnly
+                const mainPart = c.split(";")[0].trim();
+                const [name, ...valueParts] = mainPart.split("=");
+                const value = valueParts.join("=");
+
+                if (name) {
+                    if (value === "deleted") {
+                        // Сервер просит удалить куку
+                        delete cookiesMap[name];
+                    } else {
+                        // Перезаписываем куку с таким именем новой (или создаем)
+                        cookiesMap[name] = value;
+                    }
+                }
+            });
+        }
+
+        // 3. Собираем объект обратно в строку
+        const newCookies = Object.entries(cookiesMap)
+            .map(([k, v]) => `${k}=${v}`)
+            .join("; ");
+        // -----------------------------------------
 
         const newJwt = extractJwtFromCookies(newCookies);
         if (!newJwt) {
