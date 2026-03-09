@@ -47,8 +47,8 @@ function scheduleNextNotification() {
     const dayOfWeek = now.getDay(); // 0=вс, 1=пн, ..., 6=сб
 
     // Определяем, в какое время сегодня нужно отправить (если ещё не отправляли)
-    let targetHour = 17;
-    let targetMinute = 40;
+    let targetHour = 9;
+    let targetMinute = 54;
 
     // Только пн-пт
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
