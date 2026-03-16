@@ -1,5 +1,6 @@
 # SiriusDz Node.js Backend API
 Парсим и отдаем потом по api домашнее задание с сайта https://class.sirius-ft.ru/journal-app
+Авторизация тут https://class.sirius-ft.ru/authorize?force_login=yes_please
 
 ## Проект использует:
 
@@ -61,6 +62,7 @@ pnpm run studio
 pnpm run seed
 
 # Запуск приложения в дев режиме
+nvm use 20
 pnpm run dev
 
 # Запуск приложения в прод режиме

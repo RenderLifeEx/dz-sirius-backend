@@ -152,7 +152,7 @@ async function getValidCookies(): Promise<string> {
 export async function fetchDiaryPage(weekOffset: number = 0): Promise<string> {
     const cookies = await getValidCookies();
 
-    const url = `https://class.sirius-ft.ru/journal-app/u.22933/week.${weekOffset}`;
+    const url = `https://class.sirius-ft.ru/journal-app/week.${weekOffset}`;
 
     const headers = {
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
