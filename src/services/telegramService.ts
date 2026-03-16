@@ -1,6 +1,9 @@
 import axios from "axios";
 import { Lesson } from "./parser";
 
+const GROUP_1_LABEL = "👩🏻‍🏫 Группа 1 (Вероника Олеговна)";
+const GROUP_2_LABEL = "👩🏻‍🏫 Группа 2 (Анушик Гургеновна)";
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const DEBUG_SEND_TEST_CHANEL = process.env.DEBUG_SEND_TEST_CHANEL === 'true';
 const TELEGRAM_CHAT_ID = DEBUG_SEND_TEST_CHANEL ? process.env.TG_TEST_CHANEL_ID :process.env.TG_DZ_CHANEL_ID;
@@ -8,8 +11,10 @@ const TELEGRAM_CHAT_ID = DEBUG_SEND_TEST_CHANEL ? process.env.TG_TEST_CHANEL_ID 
 export async function sendTelegramNotification(
     date: string,
     homeworkItems: Lesson[],
+    chatId?: string,
 ) {
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    const targetChatId = chatId ?? TELEGRAM_CHAT_ID;
+    if (!TELEGRAM_BOT_TOKEN || !targetChatId) {
         console.warn(
             "Telegram токен или chat_id не заданы → уведомление не отправлено",
         );
@@ -37,10 +42,18 @@ export async function sendTelegramNotification(
 
     homeworkItems.forEach((item, index) => {
         const emoji = index < 10 ? emojiNumbers[index] : `${index + 1}.`;
-        const taskText = item.task.trim() || "—";
 
         lines.push(`${emoji} *${item.subject}*`);
-        lines.push(`      ${taskText}`);
+
+        if (item.task_group_1 !== undefined) {
+            lines.push(GROUP_1_LABEL);
+            lines.push(`      ${item.task_group_1.trim() || "—"}`);
+            lines.push(GROUP_2_LABEL);
+            lines.push(`      ${item.task.trim() || "—"}`);
+        } else {
+            lines.push(`      ${item.task.trim() || "—"}`);
+        }
+
         lines.push("");
     });
 
@@ -50,7 +63,7 @@ export async function sendTelegramNotification(
 
     try {
         await axios.post(url, {
-            chat_id: TELEGRAM_CHAT_ID,
+            chat_id: targetChatId,
             text: message,
             parse_mode: "Markdown",
         });

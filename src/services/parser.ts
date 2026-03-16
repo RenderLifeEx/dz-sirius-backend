@@ -4,6 +4,7 @@ import { fetchDiaryPage } from "./authAndFetch";
 export interface Lesson {
     subject: string;
     task: string;
+    task_group_1?: string; // ДЗ для группы 1 (второй аккаунт), только для английского
 }
 
 export interface Day {
@@ -11,23 +12,17 @@ export interface Day {
     lessons: Lesson[];
 }
 
-let cookies = "";
-
-export function setCookies(newCookies: string) {
-    cookies = newCookies;
-}
-
-export function getCookies(): string {
-    return cookies;
-}
+// Предмет, у которого две группы с разными учителями
+const ENGLISH_SUBJECT = "Иностранный язык (английский)";
 
 export async function fetchAndParseDiary(
     weekOffset: number = 0,
+    credentials?: { username: string; password: string },
 ): Promise<Day[]> {
     let html: string;
 
     try {
-        html = await fetchDiaryPage(weekOffset);
+        html = await fetchDiaryPage(weekOffset, credentials);
     } catch (err) {
         console.error(
             `Не удалось загрузить страницу для week.${weekOffset}:`,
@@ -80,13 +75,61 @@ export async function fetchAndParseDiary(
         }
     });
 
-    // Если ничего не спарсилось — можно здесь же попробовать ещё раз с принудительным обновлением токена
     if (days.length === 0) {
         console.warn(
             "Получен пустой результат — возможно проблема с авторизацией",
         );
-        // При желании можно здесь сбросить cachedJwt = null и попробовать ещё раз
     }
 
     return days;
+}
+
+/**
+ * Получает ДЗ от обоих аккаунтов и мержит:
+ * если у второго аккаунта (группа 1) есть английский — добавляет task_group_1
+ * к соответствующему уроку из первого аккаунта (группа 2).
+ */
+export async function fetchAndParseDiaryMerged(weekOffset: number = 0): Promise<Day[]> {
+    const username2 = process.env.SIRIUS_USERNAME_2;
+    const password2 = process.env.SIRIUS_PASSWORD_2;
+
+    // Запускаем оба парсера параллельно
+    const [mainDays, group1Days] = await Promise.all([
+        fetchAndParseDiary(weekOffset),
+        username2 && password2
+            ? fetchAndParseDiary(weekOffset, { username: username2, password: password2 })
+            : Promise.resolve([] as Day[]),
+    ]);
+
+    if (!username2 || !password2 || group1Days.length === 0) {
+        return mainDays;
+    }
+
+    // Строим карту: date → subject → task для группы 1
+    const group1Map = new Map<string, Map<string, string>>();
+    for (const day of group1Days) {
+        const subjectMap = new Map<string, string>();
+        for (const lesson of day.lessons) {
+            subjectMap.set(lesson.subject, lesson.task);
+        }
+        group1Map.set(day.date, subjectMap);
+    }
+
+    // Мержим: если английский есть у группы 1 → добавляем task_group_1
+    return mainDays.map((day) => {
+        const group1Subjects = group1Map.get(day.date);
+        if (!group1Subjects) return day;
+
+        const mergedLessons = day.lessons.map((lesson) => {
+            if (lesson.subject === ENGLISH_SUBJECT) {
+                const group1Task = group1Subjects.get(ENGLISH_SUBJECT);
+                if (group1Task) {
+                    return { ...lesson, task_group_1: group1Task };
+                }
+            }
+            return lesson;
+        });
+
+        return { ...day, lessons: mergedLessons };
+    });
 }

@@ -1,5 +1,5 @@
-import { fetchAndParseDiary } from "./parser";
-import { upsertHomework, getNextWeekdayHomework } from "../db/homework";
+import { fetchAndParseDiaryMerged } from "./parser";
+import { upsertHomework, getNextWeekdayHomework, tasksToLessons, GROUP1_SUFFIX } from "../db/homework";
 import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./telegramService";
 
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
@@ -22,11 +22,7 @@ function scheduleNextNotification() {
                 const { date, tasks } = await getNextWeekdayHomework();
 
                 if (tasks && Object.keys(tasks).length > 0) {
-                    const homeworkArray = Object.entries(tasks).map(([subject, task]) => ({
-                        subject,
-                        task: String(task),
-                    }));
-                    await sendTelegramNotification(date, homeworkArray);
+                    await sendTelegramNotification(date, tasksToLessons(tasks));
                 } else {
                     console.log("[DEBUG] Нет ДЗ на следующий учебный день");
                 }
@@ -84,14 +80,7 @@ function scheduleNextNotification() {
                         return;
                     }
 
-                    const homeworkArray = Object.entries(tasks).map(
-                        ([subject, task]) => ({
-                            subject,
-                            task: String(task),
-                        }),
-                    );
-
-                    await sendTelegramNotification(date, homeworkArray);
+                    await sendTelegramNotification(date, tasksToLessons(tasks));
                 } catch (err) {
                     console.error(
                         "Ошибка при отправке планового уведомления:",
@@ -116,7 +105,7 @@ export function startScheduler() {
             console.log(
                 `[${now.toISOString()}] Парсинг текущей недели (week.0)`,
             );
-            const currentWeekDays = await fetchAndParseDiary(0);
+            const currentWeekDays = await fetchAndParseDiaryMerged(0);
 
             if (currentWeekDays.length === 0) {
                 console.warn("Парсер вернул пустой массив для текущей недели.");
@@ -128,6 +117,9 @@ export function startScheduler() {
                 const tasks: Record<string, string> = {};
                 day.lessons.forEach((lesson) => {
                     tasks[lesson.subject] = lesson.task;
+                    if (lesson.task_group_1) {
+                        tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
+                    }
                 });
 
                 if (Object.keys(tasks).length > 0) {
@@ -142,12 +134,15 @@ export function startScheduler() {
                 console.log(
                     `[${now.toISOString()}] Парсинг СЛЕДУЮЩЕЙ недели (week.-1)`,
                 );
-                const nextWeekDays = await fetchAndParseDiary(-1);
+                const nextWeekDays = await fetchAndParseDiaryMerged(-1);
 
                 for (const day of nextWeekDays) {
                     const tasks: Record<string, string> = {};
                     day.lessons.forEach((lesson) => {
                         tasks[lesson.subject] = lesson.task;
+                        if (lesson.task_group_1) {
+                            tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
+                        }
                     });
 
                     if (Object.keys(tasks).length > 0) {

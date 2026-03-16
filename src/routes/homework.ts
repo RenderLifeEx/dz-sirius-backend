@@ -1,7 +1,8 @@
 import { Router } from "express";
 
-import { getTodayHomework, getNextWeekdayHomework, upsertHomework } from "../db/homework";
+import { getTodayHomework, getNextWeekdayHomework, upsertHomework, tasksToLessons } from "../db/homework";
 import { fetchAndParseDiary } from "../services/parser";
+import { sendTelegramNotification } from "../services/telegramService";
 
 const router = Router();
 
@@ -73,6 +74,27 @@ router.post("/test-insert-bd", async (req, res) => {
             message: "Internal server error",
             details: errorMessage
         });
+    }
+});
+
+router.post("/test-send-telegram", async (_, res) => {
+    try {
+        const { date, tasks } = await getNextWeekdayHomework();
+
+        if (!tasks || Object.keys(tasks).length === 0) {
+            return res
+                .status(404)
+                .json({ message: "Нет домашнего задания на след учебный день" });
+        }
+
+        const lessons = tasksToLessons(tasks);
+        const testChatId = process.env.TG_TEST_CHANEL_ID;
+        await sendTelegramNotification(date, lessons, testChatId);
+
+        res.json({ message: `Отправлено в тестовый канал на ${date}`, date, homework: lessons });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Ошибка сервера" });
     }
 });
 

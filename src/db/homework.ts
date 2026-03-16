@@ -1,8 +1,22 @@
 import { db } from "./db";
 import { homework } from "./schema";
 import { sql } from "drizzle-orm";
+import type { Lesson } from "../services/parser";
 
 export type Tasks = Record<string, string>; // { "Математика": "с. 72 (р.т.)", ... }
+
+export const GROUP1_SUFFIX = "::group1";
+
+/** Преобразует Tasks из БД в массив Lesson для Telegram-уведомления */
+export function tasksToLessons(tasks: Tasks): Lesson[] {
+    return Object.entries(tasks)
+        .filter(([subject]) => !subject.endsWith(GROUP1_SUFFIX))
+        .map(([subject, task]) => ({
+            subject,
+            task: String(task),
+            task_group_1: tasks[`${subject}${GROUP1_SUFFIX}`],
+        }));
+}
 
 export async function upsertHomework(
     date: string,

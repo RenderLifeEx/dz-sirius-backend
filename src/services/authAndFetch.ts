@@ -3,8 +3,20 @@
 import axios from "axios";
 import jwt from "jsonwebtoken";
 
-let cachedCookies: string = ""; // полная строка Cookie
-let lastJwtToken: string | null = null;
+interface SessionState {
+    cachedCookies: string;
+    lastJwtToken: string | null;
+}
+
+// Хранит состояние сессии отдельно для каждого пользователя (ключ — username)
+const sessions = new Map<string, SessionState>();
+
+function getSession(username: string): SessionState {
+    if (!sessions.has(username)) {
+        sessions.set(username, { cachedCookies: "", lastJwtToken: null });
+    }
+    return sessions.get(username)!;
+}
 
 // Проверка, истёк ли токен (запас 5 минут)
 function isTokenExpired(token: string): boolean {
@@ -24,19 +36,20 @@ function extractJwtFromCookies(cookiesStr: string): string | null {
     return match ? match[1] : null;
 }
 
-// Основная функция авторизации → получает свежие куки
-async function refreshSession(): Promise<string> {
-    console.log("[auth] Выполняем авторизацию...");
+// Основная функция авторизации → получает свежие куки для указанного пользователя
+async function refreshSession(username: string, password: string): Promise<string> {
+    console.log(`[auth] Выполняем авторизацию для ${username}...`);
+
+    const session = getSession(username);
 
     try {
         const loginUrl = "https://class.sirius-ft.ru/ajaxauthorize";
 
         const formData = new FormData();
-        formData.append("username", process.env.SIRIUS_USERNAME || "");
-        formData.append("password", process.env.SIRIUS_PASSWORD || "");
+        formData.append("username", username);
+        formData.append("password", password);
         formData.append("return_uri", "/");
 
-        // Базовые заголовки (без Content-Type — axios сам поставит с boundary)
         const headers: Record<string, string> = {
             accept: "*/*",
             "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -55,9 +68,8 @@ async function refreshSession(): Promise<string> {
             priority: "u=1, i",
         };
 
-        // Если уже есть какие-то куки — передаём их (CSRF-TOKEN может быть нужен)
-        if (cachedCookies) {
-            headers["Cookie"] = cachedCookies;
+        if (session.cachedCookies) {
+            headers["Cookie"] = session.cachedCookies;
         }
 
         const response = await axios.post(loginUrl, formData, {
@@ -66,70 +78,59 @@ async function refreshSession(): Promise<string> {
             maxRedirects: 5,
         });
 
-        // Извлекаем все Set-Cookie
         const setCookieHeaders = response.headers["set-cookie"];
         if (
             !setCookieHeaders ||
             !Array.isArray(setCookieHeaders) ||
             setCookieHeaders.length === 0
         ) {
-            console.warn("[auth] Нет Set-Cookie в ответе авторизации");
-            // но иногда сессия может устанавливаться через другие механизмы — проверим тело ответа
+            console.warn(`[auth] Нет Set-Cookie в ответе авторизации для ${username}`);
         }
 
-        // --- ИСПРАВЛЕННАЯ ЛОГИКА ОБРАБОТКИ КУКОВ ---
-
-        // 1. Парсим текущие куки в объект { name: value }
         const cookiesMap: Record<string, string> = {};
-        if (cachedCookies) {
-            cachedCookies.split(";").forEach((cookie) => {
+        if (session.cachedCookies) {
+            session.cachedCookies.split(";").forEach((cookie) => {
                 const parts = cookie.trim().split("=");
                 if (parts.length >= 1) {
                     const name = parts[0];
-                    const value = parts.slice(1).join("="); // на случай, если в значении есть =
+                    const value = parts.slice(1).join("=");
                     if (name) cookiesMap[name] = value;
                 }
             });
         }
 
-        // 2. Обновляем/добавляем/удаляем куки из ответа сервера
         if (setCookieHeaders) {
             setCookieHeaders.forEach((c) => {
-                // Берем только часть "name=value", отсекая атрибуты вроде Path; Secure; HttpOnly
                 const mainPart = c.split(";")[0].trim();
                 const [name, ...valueParts] = mainPart.split("=");
                 const value = valueParts.join("=");
 
                 if (name) {
                     if (value === "deleted") {
-                        // Сервер просит удалить куку
                         delete cookiesMap[name];
                     } else {
-                        // Перезаписываем куку с таким именем новой (или создаем)
                         cookiesMap[name] = value;
                     }
                 }
             });
         }
 
-        // 3. Собираем объект обратно в строку
         const newCookies = Object.entries(cookiesMap)
             .map(([k, v]) => `${k}=${v}`)
             .join("; ");
-        // -----------------------------------------
 
         const newJwt = extractJwtFromCookies(newCookies);
         if (!newJwt) {
-            throw new Error("После авторизации не найден jwt_v_2 в куках");
+            throw new Error(`После авторизации не найден jwt_v_2 в куках для ${username}`);
         }
 
-        cachedCookies = newCookies;
-        lastJwtToken = newJwt;
+        session.cachedCookies = newCookies;
+        session.lastJwtToken = newJwt;
 
-        console.log("[auth] Авторизация успешна → новые куки сохранены");
-        return cachedCookies;
+        console.log(`[auth] Авторизация успешна для ${username} → новые куки сохранены`);
+        return session.cachedCookies;
     } catch (err: any) {
-        console.error("[auth] Ошибка авторизации:", err.message);
+        console.error(`[auth] Ошибка авторизации для ${username}:`, err.message);
         if (err.response) {
             console.error(
                 "[auth] Ответ сервера:",
@@ -141,16 +142,24 @@ async function refreshSession(): Promise<string> {
     }
 }
 
-// Получаем валидные куки (обновляем если нужно)
-async function getValidCookies(): Promise<string> {
-    if (!cachedCookies || !lastJwtToken || isTokenExpired(lastJwtToken)) {
-        return await refreshSession();
+// Получаем валидные куки для указанного пользователя (обновляем если нужно)
+async function getValidCookies(username: string, password: string): Promise<string> {
+    const session = getSession(username);
+    if (!session.cachedCookies || !session.lastJwtToken || isTokenExpired(session.lastJwtToken)) {
+        return await refreshSession(username, password);
     }
-    return cachedCookies;
+    return session.cachedCookies;
 }
 
-export async function fetchDiaryPage(weekOffset: number = 0): Promise<string> {
-    const cookies = await getValidCookies();
+export async function fetchDiaryPage(
+    weekOffset: number = 0,
+    credentials?: { username: string; password: string },
+): Promise<string> {
+    const username = credentials?.username || process.env.SIRIUS_USERNAME || "";
+    const password = credentials?.password || process.env.SIRIUS_PASSWORD || "";
+
+    const cookies = await getValidCookies(username, password);
+    const session = getSession(username);
 
     const url = `https://class.sirius-ft.ru/journal-app/week.${weekOffset}`;
 
@@ -183,10 +192,10 @@ export async function fetchDiaryPage(weekOffset: number = 0): Promise<string> {
             err.response?.status === 302
         ) {
             console.warn(
-                "[fetch] Ошибка авторизации (401/403/302) → принудительно обновляем сессию",
+                `[fetch] Ошибка авторизации (401/403/302) для ${username} → принудительно обновляем сессию`,
             );
-            cachedCookies = "";
-            lastJwtToken = null;
+            session.cachedCookies = "";
+            session.lastJwtToken = null;
         }
         throw err;
     }
