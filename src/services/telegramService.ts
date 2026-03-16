@@ -1,8 +1,8 @@
 import axios from "axios";
 import { Lesson } from "./parser";
 
-const GROUP_1_LABEL = "👩🏻‍🏫 Группа 1 (Вероника Олеговна)";
-const GROUP_2_LABEL = "👩🏻‍🏫 Группа 2 (Анушик Гургеновна)";
+const GROUP_1_LABEL = "      👩🏽 Группа 1 (Вероника Олеговна)";
+const GROUP_2_LABEL = "      👩🏻 Группа 2 (Анушик Гургеновна)";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const DEBUG_SEND_TEST_CHANEL = process.env.DEBUG_SEND_TEST_CHANEL === 'true';
@@ -12,6 +12,7 @@ export async function sendTelegramNotification(
     date: string,
     homeworkItems: Lesson[],
     chatId?: string,
+    isUpdate?: boolean,
 ) {
     const targetChatId = chatId ?? TELEGRAM_CHAT_ID;
     if (!TELEGRAM_BOT_TOKEN || !targetChatId) {
@@ -38,7 +39,11 @@ export async function sendTelegramNotification(
         "🔟",
     ];
 
-    const lines: string[] = [`*ДЗ на ${date}*`, ""];
+    const header = isUpdate
+        ? `*❗️ДЗ на ${date} было обновлено ❗️*`
+        : `*ДЗ на ${date}*`;
+
+    const lines: string[] = [header, ""];
 
     homeworkItems.forEach((item, index) => {
         const emoji = index < 10 ? emojiNumbers[index] : `${index + 1}.`;
@@ -67,7 +72,8 @@ export async function sendTelegramNotification(
             text: message,
             parse_mode: "Markdown",
         });
-        console.log(`Уведомление отправлено в Telegram на ${date}`);
+        const label = isUpdate ? "Уведомление об обновлении" : "Уведомление";
+        console.log(`${label} отправлено в Telegram на ${date}`);
     } catch (err) {
         console.error("Ошибка отправки в Telegram:", err);
     }

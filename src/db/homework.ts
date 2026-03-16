@@ -18,16 +18,27 @@ export function tasksToLessons(tasks: Tasks): Lesson[] {
         }));
 }
 
+/** Стабильная сериализация: ключи отсортированы, чтобы порядок не влиял на сравнение */
+function sortedStringify(obj: Tasks): string {
+    return JSON.stringify(
+        Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)))
+    );
+}
+
+/**
+ * Сохраняет/обновляет ДЗ для даты.
+ * Возвращает `{ changed: true }`, если задание отличается от того, что было в БД.
+ */
 export async function upsertHomework(
     date: string,
     tasks: Tasks,
-): Promise<void> {
+): Promise<{ changed: boolean }> {
+    const existing = await getHomeworkForDate(date);
+    const changed = !existing || sortedStringify(existing) !== sortedStringify(tasks);
+
     await db
         .insert(homework)
-        .values({
-            date,
-            tasks,
-        })
+        .values({ date, tasks })
         .onConflictDoUpdate({
             target: homework.date,
             set: {
@@ -35,6 +46,8 @@ export async function upsertHomework(
                 updatedAt: sql`NOW()`,
             },
         });
+
+    return { changed };
 }
 
 export async function getHomeworkForDate(date: string): Promise<Tasks | null> {
@@ -57,6 +70,21 @@ export async function getTodayHomework(): Promise<Tasks | null> {
     return getHomeworkForDate(dateStr);
 }
 
+/** Возвращает дату следующего будного дня в формате "дд.мм.гггг" */
+export function getNextWeekdayDate(): string {
+    const nextDate = new Date();
+
+    do {
+        nextDate.setDate(nextDate.getDate() + 1);
+    } while (nextDate.getDay() === 0 || nextDate.getDay() === 6); // 0 = вс, 6 = сб
+
+    const dd = String(nextDate.getDate()).padStart(2, "0");
+    const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
+    const yyyy = nextDate.getFullYear();
+
+    return `${dd}.${mm}.${yyyy}`;
+}
+
 /**
  * Возвращает домашнее задание на следующий будний день
  * (пропускает субботу и воскресенье)
@@ -65,23 +93,8 @@ export async function getNextWeekdayHomework(): Promise<{
     date: string;
     tasks: Tasks | null;
 }> {
-    let nextDate = new Date();
-
-    // Добавляем дни, пока не получим будний день (понедельник–пятница)
-    do {
-        nextDate.setDate(nextDate.getDate() + 1);
-    } while (nextDate.getDay() === 0 || nextDate.getDay() === 6); // 0 = воскресенье, 6 = суббота
-
-    const dd = String(nextDate.getDate()).padStart(2, "0");
-    const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
-    const yyyy = nextDate.getFullYear();
-
-    const nextDateStr = `${dd}.${mm}.${yyyy}`;
-
+    const nextDateStr = getNextWeekdayDate();
     const tasks = await getHomeworkForDate(nextDateStr);
 
-    return {
-        date: nextDateStr,
-        tasks,
-    };
+    return { date: nextDateStr, tasks };
 }

@@ -1,8 +1,20 @@
 import { fetchAndParseDiaryMerged } from "./parser";
-import { upsertHomework, getNextWeekdayHomework, tasksToLessons, GROUP1_SUFFIX } from "../db/homework";
+import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, tasksToLessons, GROUP1_SUFFIX } from "../db/homework";
 import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./telegramService";
 
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
+
+// Время ежедневного планового уведомления
+const NOTIFICATION_HOUR = 17;
+const NOTIFICATION_MINUTE = 40;
+
+/** true, если текущее время ≥ 17:40 (плановое уведомление уже ушло) */
+function isAfterDailyNotification(): boolean {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    return h > NOTIFICATION_HOUR || (h === NOTIFICATION_HOUR && m >= NOTIFICATION_MINUTE);
+}
 
 function scheduleNextNotification() {
     const now = new Date();
@@ -38,24 +50,20 @@ function scheduleNextNotification() {
     }
 
     // ──────────────────────────────
-    // Обычный режим (пн–пт в 17:50/18:40)
+    // Обычный режим (пн–пт в 17:40)
     // ──────────────────────────────
     const dayOfWeek = now.getDay(); // 0=вс, 1=пн, ..., 6=сб
-
-    // Определяем, в какое время сегодня нужно отправить (если ещё не отправляли)
-    let targetHour = 17;
-    let targetMinute = 40;
 
     // Только пн-пт
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         const target = new Date(now);
-        target.setHours(targetHour, targetMinute, 0, 0);
+        target.setHours(NOTIFICATION_HOUR, NOTIFICATION_MINUTE, 0, 0);
 
         // Если уже прошло время сегодня → планируем на завтра
         if (now > target) {
             target.setDate(target.getDate() + 1);
             // Если завтра суббота → пропускаем до понедельника
-            let tomorrowDay = target.getDay();
+            const tomorrowDay = target.getDay();
             if (tomorrowDay === 6) {
                 target.setDate(target.getDate() + 2);
             } else if (tomorrowDay === 0) {
@@ -101,6 +109,11 @@ export function startScheduler() {
             const now = new Date();
             const dayOfWeek = now.getDay(); // 0 = воскресенье, 1 = понедельник, ..., 6 = суббота
 
+            // Дата следующего учебного дня — именно на неё уходит плановое уведомление.
+            // Если ДЗ на эту дату изменилось после 17:40, шлём уведомление об обновлении.
+            const nextWeekdayDate = getNextWeekdayDate();
+            const afterNotification = isAfterDailyNotification();
+
             // Всегда парсим текущую неделю (week.0)
             console.log(
                 `[${now.toISOString()}] Парсинг текущей недели (week.0)`,
@@ -123,8 +136,13 @@ export function startScheduler() {
                 });
 
                 if (Object.keys(tasks).length > 0) {
-                    await upsertHomework(day.date, tasks);
+                    const { changed } = await upsertHomework(day.date, tasks);
                     console.log(`Сохранено/обновлено ДЗ для ${day.date}`);
+
+                    if (changed && afterNotification && day.date === nextWeekdayDate) {
+                        console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
+                        await sendTelegramNotification(day.date, tasksToLessons(tasks), undefined, true);
+                    }
                 }
             }
 
@@ -146,10 +164,15 @@ export function startScheduler() {
                     });
 
                     if (Object.keys(tasks).length > 0) {
-                        await upsertHomework(day.date, tasks);
+                        const { changed } = await upsertHomework(day.date, tasks);
                         console.log(
                             `Сохранено/обновлено ДЗ (след. неделя) для ${day.date}`,
                         );
+
+                        if (changed && afterNotification && day.date === nextWeekdayDate) {
+                            console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
+                            await sendTelegramNotification(day.date, tasksToLessons(tasks), undefined, true);
+                        }
                     }
                 }
             }
@@ -163,7 +186,7 @@ export function startScheduler() {
     // Первый запуск сразу
     fetchAndSave();
 
-    // Каждые 30 минут
+    // Каждые 10 минут
     setInterval(fetchAndSave, 10 * 60 * 1000);
 
     // Планирование отправки уведомлений
