@@ -54,16 +54,16 @@ export async function fetchAndParseDiary(
                     .text()
                     .trim();
 
-                let task = $(lessonElem)
-                    .find(".dnevnik-lesson__task")
-                    .text()
-                    .trim();
+                const taskElem = $(lessonElem).find(".dnevnik-lesson__task");
 
-                // чистим
-                task = task
-                    .replace(/<[^>]*>/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim();
+                // Заменяем видимый текст каждой ссылки на её полный href,
+                // чтобы усечённые подписи вида "https://..." не терялись
+                taskElem.find("a[href]").each((_, a) => {
+                    const href = $(a).attr("href");
+                    if (href) $(a).text(href);
+                });
+
+                let task = taskElem.text().replace(/\s+/g, " ").trim();
 
                 if (subject && task && task.toLowerCase() !== "без задания") {
                     lessons.push({ subject, task });
