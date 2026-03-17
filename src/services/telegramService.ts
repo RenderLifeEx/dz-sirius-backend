@@ -71,7 +71,7 @@ export async function sendTelegramNotification(
             chat_id: targetChatId,
             text: message,
             parse_mode: "Markdown",
-        });
+        }, { timeout: 10_000 });
         const label = isUpdate ? "Уведомление об обновлении" : "Уведомление";
         console.log(`${label} отправлено в Telegram на ${date}`);
     } catch (err) {
@@ -98,7 +98,7 @@ export async function sendTelegramAuthErrorNotification() {
             chat_id: TG_TEST_CHANEL_ID,
             text: message,
             parse_mode: "Markdown",
-        });
+        }, { timeout: 10_000 });
         console.log("Уведомление об ошибке авторизации отправлено в Telegram");
     } catch (err) {
         console.error("Ошибка отправки уведомления об ошибке авторизации в Telegram:", err);
