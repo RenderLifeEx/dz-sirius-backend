@@ -6,6 +6,17 @@ import { sendTelegramNotification } from "../services/telegramService";
 
 const router = Router();
 
+function handleRouteError(err: unknown, res: import("express").Response) {
+    console.error(err);
+
+    const cause = (err as any)?.cause;
+    if (cause?.code === "ECONNREFUSED" || cause?.errors?.some((e: any) => e?.code === "ECONNREFUSED")) {
+        return res.status(503).json({ error: "База данных недоступна. Проверьте, запущен ли Docker." });
+    }
+
+    res.status(500).json({ error: "Внутренняя ошибка сервера" });
+}
+
 router.get("/today", async (_, res) => {
     try {
         const tasks = await getTodayHomework();
@@ -23,8 +34,7 @@ router.get("/today", async (_, res) => {
 
         res.json(array);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Ошибка сервера" });
+        handleRouteError(err, res);
     }
 });
 
@@ -45,8 +55,7 @@ router.get("/next-day", async (_, res) => {
 
         res.json({ date, homework: array });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Ошибка сервера" });
+        handleRouteError(err, res);
     }
 });
 
@@ -59,21 +68,8 @@ router.post("/test-insert-bd", async (req, res) => {
         );
 
         res.json(newHomework);
-    } catch (error: unknown) { // Явно указываем тип unknown
-        let errorMessage = "Unknown error occurred";
-
-        // Проверяем тип ошибки
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
-
-        res.status(500).json({
-            status: "error",
-            message: "Internal server error",
-            details: errorMessage
-        });
+    } catch (err) {
+        handleRouteError(err, res);
     }
 });
 
@@ -93,8 +89,7 @@ router.post("/test-send-telegram", async (_, res) => {
 
         res.json({ message: `Отправлено в тестовый канал на ${date}`, date, homework: lessons });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Ошибка сервера" });
+        handleRouteError(err, res);
     }
 });
 
@@ -109,21 +104,8 @@ router.get("/test-parser", async (req, res) => {
         );
 
         res.json(currentWeekDays);
-    } catch (error: unknown) { // Явно указываем тип unknown
-        let errorMessage = "Unknown error occurred";
-
-        // Проверяем тип ошибки
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
-
-        res.status(500).json({
-            status: "error",
-            message: "Internal server error",
-            details: errorMessage
-        });
+    } catch (err) {
+        handleRouteError(err, res);
     }
 });
 
