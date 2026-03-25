@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { homework } from "./schema";
 import { sql } from "drizzle-orm";
-import type { Lesson } from "../services/parser";
+import type { Lesson } from "../diary/parser";
 
 export type Tasks = Record<string, string>; // { "Математика": "с. 72 (р.т.)", ... }
 

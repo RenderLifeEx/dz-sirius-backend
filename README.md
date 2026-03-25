@@ -54,7 +54,7 @@ cd dz-sirius-backend
 pnpm install
 
 # Копируем .env-файл
-cp .env.development.local .env
+cp .env.example.local .env
 # Заполните переменные (см. раздел «Переменные окружения»)
 
 # Запуск базы данных

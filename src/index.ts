@@ -2,7 +2,7 @@ import express from "express";
 import homeworkRoutes from "./routes/homework";
 import cors from "cors";
 import bodyParser from "body-parser";
-import { startScheduler } from './services/scheduler';
+import { startScheduler } from './scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

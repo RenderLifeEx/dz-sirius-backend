@@ -1,8 +1,9 @@
 import { Router } from "express";
 
 import { getTodayHomework, getNextWeekdayHomework, upsertHomework, tasksToLessons } from "../db/homework";
-import { fetchAndParseDiary } from "../services/parser";
-import { sendTelegramNotification } from "../services/telegramService";
+import { fetchAndParseDiary } from "../diary/parser";
+import { sendTelegramNotification } from "../notifications/telegram";
+import { sendMaxNotification } from "../notifications/max";
 
 const router = Router();
 
@@ -88,6 +89,26 @@ router.post("/test-send-telegram", async (_, res) => {
         await sendTelegramNotification(date, lessons, testChatId);
 
         res.json({ message: `Отправлено в тестовый канал на ${date}`, date, homework: lessons });
+    } catch (err) {
+        handleRouteError(err, res);
+    }
+});
+
+router.post("/test-send-max", async (_, res) => {
+    try {
+        const { date, tasks } = await getNextWeekdayHomework();
+
+        if (!tasks || Object.keys(tasks).length === 0) {
+            return res
+                .status(404)
+                .json({ message: "Нет домашнего задания на след учебный день" });
+        }
+
+        const lessons = tasksToLessons(tasks);
+        const testChannelId = Number(process.env.MAX_TEST_CHANNEL_ID);
+        await sendMaxNotification(date, lessons, testChannelId);
+
+        res.json({ message: `Отправлено в тестовый MAX канал на ${date}`, date, homework: lessons });
     } catch (err) {
         handleRouteError(err, res);
     }

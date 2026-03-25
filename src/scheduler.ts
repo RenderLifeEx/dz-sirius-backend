@@ -1,6 +1,24 @@
-import { fetchAndParseDiaryMerged } from "./parser";
-import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, tasksToLessons, GROUP1_SUFFIX } from "../db/homework";
-import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./telegramService";
+import { fetchAndParseDiaryMerged } from "./diary/parser";
+import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, tasksToLessons, GROUP1_SUFFIX } from "./db/homework";
+import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./notifications/telegram";
+import { sendMaxNotification, sendMaxAuthErrorNotification } from "./notifications/max";
+
+async function sendToAllMessengers(
+    date: string,
+    lessons: ReturnType<typeof tasksToLessons>,
+    isUpdate?: boolean,
+) {
+    const results = await Promise.allSettled([
+        sendTelegramNotification(date, lessons, undefined, isUpdate),
+        sendMaxNotification(date, lessons, undefined, isUpdate),
+    ]);
+    results.forEach((result, i) => {
+        if (result.status === "rejected") {
+            const name = i === 0 ? "Telegram" : "MAX";
+            console.error(`Ошибка отправки в ${name}:`, result.reason);
+        }
+    });
+}
 
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
 
@@ -34,7 +52,7 @@ function scheduleNextNotification() {
                 const { date, tasks } = await getNextWeekdayHomework();
 
                 if (tasks && Object.keys(tasks).length > 0) {
-                    await sendTelegramNotification(date, tasksToLessons(tasks));
+                    await sendToAllMessengers(date, tasksToLessons(tasks));
                 } else {
                     console.log("[DEBUG] Нет ДЗ на следующий учебный день");
                 }
@@ -88,7 +106,7 @@ function scheduleNextNotification() {
                         return;
                     }
 
-                    await sendTelegramNotification(date, tasksToLessons(tasks));
+                    await sendToAllMessengers(date, tasksToLessons(tasks));
                 } catch (err) {
                     console.error(
                         "Ошибка при отправке планового уведомления:",
@@ -122,7 +140,10 @@ export function startScheduler() {
 
             if (currentWeekDays.length === 0) {
                 console.warn("Парсер вернул пустой массив для текущей недели.");
-                await sendTelegramAuthErrorNotification();
+                await Promise.allSettled([
+                    sendTelegramAuthErrorNotification(),
+                    sendMaxAuthErrorNotification(),
+                ]);
                 return;
             }
 
@@ -141,7 +162,7 @@ export function startScheduler() {
 
                     if (changed && afterNotification && day.date === nextWeekdayDate) {
                         console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
-                        await sendTelegramNotification(day.date, tasksToLessons(tasks), undefined, true);
+                        await sendToAllMessengers(day.date, tasksToLessons(tasks), true);
                     }
                 }
             }
@@ -171,7 +192,7 @@ export function startScheduler() {
 
                         if (changed && afterNotification && day.date === nextWeekdayDate) {
                             console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
-                            await sendTelegramNotification(day.date, tasksToLessons(tasks), undefined, true);
+                            await sendToAllMessengers(day.date, tasksToLessons(tasks), true);
                         }
                     }
                 }
@@ -190,6 +211,6 @@ export function startScheduler() {
     setInterval(fetchAndSave, 10 * 60 * 1000);
 
     // Планирование отправки уведомлений
-    console.log("Запуск планировщика уведомлений Telegram...");
+    console.log("Запуск планировщика уведомлений Telegram и MAX...");
     scheduleNextNotification();
 }

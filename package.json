@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/RenderLifeEx/dz-sirius#readme",
   "dependencies": {
+    "@maxhub/max-bot-api": "^0.2.2",
     "axios": "^1.13.4",
     "body-parser": "^2.2.2",
     "cheerio": "^1.2.0",
@@ -42,8 +43,8 @@
     "@types/cheerio": "^1.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
-    "@types/pg": "^8.16.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",

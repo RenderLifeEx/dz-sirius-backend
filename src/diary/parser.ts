@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { fetchDiaryPage } from "./authAndFetch";
+import { fetchDiaryPage } from "./auth";
 
 export interface Lesson {
     subject: string;
