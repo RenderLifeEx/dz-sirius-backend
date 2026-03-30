@@ -1,4 +1,5 @@
 import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { Lesson } from "../diary/parser";
 import { buildHomeworkMessage } from "./helpers";
 
@@ -14,19 +15,17 @@ const TELEGRAM_CHAT_ID = DEBUG_SEND_TEST_CHANEL
 const getAxiosConfig = () => {
     const config: any = {
         timeout: 10_000,
+        proxy: false, // отключаем встроенный proxy axios, чтобы не слал обычный HTTP
     };
 
-    // Если заданы настройки прокси, добавляем их в конфиг
+    // Если заданы настройки прокси, используем httpsAgent для CONNECT-туннеля
     if (process.env.HTTP_PROXY_HOST) {
-        config.proxy = {
-            protocol: "http",
-            host: process.env.HTTP_PROXY_HOST,
-            port: Number(process.env.HTTP_PROXY_PORT),
-            auth: {
-                username: process.env.HTTP_PROXY_USER,
-                password: process.env.HTTP_PROXY_PASS,
-            },
-        };
+        const { HTTP_PROXY_HOST, HTTP_PROXY_PORT, HTTP_PROXY_USER, HTTP_PROXY_PASS } = process.env;
+        const auth = HTTP_PROXY_USER
+            ? `${HTTP_PROXY_USER}:${HTTP_PROXY_PASS}@`
+            : "";
+        const proxyUrl = `http://${auth}${HTTP_PROXY_HOST}:${HTTP_PROXY_PORT}`;
+        config.httpsAgent = new HttpsProxyAgent(proxyUrl);
     }
 
     return config;
