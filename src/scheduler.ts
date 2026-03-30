@@ -23,8 +23,8 @@ async function sendToAllMessengers(
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
 
 // Время ежедневного планового уведомления
-const NOTIFICATION_HOUR = 17;
-const NOTIFICATION_MINUTE = 40;
+const NOTIFICATION_HOUR = 21;
+const NOTIFICATION_MINUTE = 56;
 
 /** true, если текущее время ≥ 17:40 (плановое уведомление уже ушло) */
 function isAfterDailyNotification(): boolean {
