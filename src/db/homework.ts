@@ -85,6 +85,29 @@ export function getNextWeekdayDate(): string {
     return `${dd}.${mm}.${yyyy}`;
 }
 
+/** Парсит дату "дд.мм.гггг" в объект Date */
+function parseDateStr(dateStr: string): Date {
+    const [dd, mm, yyyy] = dateStr.split(".");
+    return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+}
+
+/**
+ * Возвращает все записи с ДЗ начиная с сегодняшнего дня (включительно),
+ * отсортированные по дате по возрастанию.
+ */
+export async function getAllHomeworkFromToday(): Promise<Array<{ date: string; tasks: Tasks }>> {
+    const all = await db.query.homework.findMany({
+        columns: { date: true, tasks: true },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return all
+        .filter(({ date }) => parseDateStr(date) >= today)
+        .sort((a, b) => parseDateStr(a.date).getTime() - parseDateStr(b.date).getTime());
+}
+
 /**
  * Возвращает домашнее задание на следующий будний день
  * (пропускает субботу и воскресенье)

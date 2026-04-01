@@ -12,9 +12,8 @@ const isDev = process.env.NODE_ENV === "development";
 
 // CORS применяем только в dev-режиме
 if (isDev) {
-    app.use(cors({
-        origin: `http://localhost:3000`,
-    }));
+    const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+    app.use(cors({ origin: corsOrigin }));
 }
 
 startScheduler();

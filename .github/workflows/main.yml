@@ -1,4 +1,4 @@
-name: Deploy to production server
+name: Deploy dz-sirius-backend to production server
 on:
   push:
     branches:

@@ -3,7 +3,7 @@ import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, tasksToLess
 import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./notifications/telegram";
 import { sendMaxNotification, sendMaxAuthErrorNotification } from "./notifications/max";
 
-async function sendToAllMessengers(
+export async function sendToAllMessengers(
     date: string,
     lessons: ReturnType<typeof tasksToLessons>,
     isUpdate?: boolean,
@@ -21,6 +21,26 @@ async function sendToAllMessengers(
 }
 
 const DEBUG_SEND_EVERY_MINUTE = process.env.DEBUG_SEND_EVERY_MINUTE === 'true';
+
+let pendingNotificationTimeout: ReturnType<typeof setTimeout> | null = null;
+let nextNotificationAt: Date | null = null;
+
+/** Возвращает дату и время следующей запланированной отправки */
+export function getNextNotificationTime(): Date | null {
+    return nextNotificationAt;
+}
+
+/** Отменяет запланированное плановое уведомление и перепланирует следующее */
+export function cancelPendingNotification(): boolean {
+    if (pendingNotificationTimeout !== null) {
+        clearTimeout(pendingNotificationTimeout);
+        pendingNotificationTimeout = null;
+        console.log("Плановое уведомление отменено вручную → перепланирование");
+        scheduleNextNotification();
+        return true;
+    }
+    return false;
+}
 
 // Время ежедневного планового уведомления
 const NOTIFICATION_HOUR = 17;
@@ -47,7 +67,11 @@ function scheduleNextNotification() {
             `[DEBUG] Отправка каждую минуту включена → следующая через ~${Math.round(delayMs/1000)} сек`
         );
 
-        setTimeout(async () => {
+        const debugTarget = new Date(Date.now() + delayMs);
+        nextNotificationAt = debugTarget;
+        pendingNotificationTimeout = setTimeout(async () => {
+            pendingNotificationTimeout = null;
+            nextNotificationAt = null;
             try {
                 const { date, tasks } = await getNextWeekdayHomework();
 
@@ -95,7 +119,10 @@ function scheduleNextNotification() {
             console.log(
                 `[${now.toISOString()}] Запланирована отправка ДЗ на ${target.toLocaleString("ru-RU")}`,
             );
-            setTimeout(async () => {
+            nextNotificationAt = target;
+            pendingNotificationTimeout = setTimeout(async () => {
+                pendingNotificationTimeout = null;
+                nextNotificationAt = null;
                 try {
                     const { date, tasks } = await getNextWeekdayHomework();
 

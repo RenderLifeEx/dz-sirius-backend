@@ -1,9 +1,10 @@
 import { Router } from "express";
 
-import { getTodayHomework, getNextWeekdayHomework, upsertHomework, tasksToLessons } from "../db/homework";
+import { getTodayHomework, getNextWeekdayHomework, getAllHomeworkFromToday, upsertHomework, tasksToLessons } from "../db/homework";
 import { fetchAndParseDiary } from "../diary/parser";
 import { sendTelegramNotification } from "../notifications/telegram";
 import { sendMaxNotification } from "../notifications/max";
+import { cancelPendingNotification, sendToAllMessengers, getNextNotificationTime } from "../scheduler";
 
 const router = Router();
 
@@ -55,6 +56,64 @@ router.get("/next-day", async (_, res) => {
         }));
 
         res.json({ date, homework: array });
+    } catch (err) {
+        handleRouteError(err, res);
+    }
+});
+
+router.get("/available-days", async (_, res) => {
+    try {
+        const days = await getAllHomeworkFromToday();
+
+        if (days.length === 0) {
+            return res
+                .status(404)
+                .json({ message: "Нет доступных дней с домашним заданием" });
+        }
+
+        const result = days.map(({ date, tasks }) => ({
+            date,
+            homework: Object.entries(tasks).map(([subject, task]) => ({ subject, task })),
+        }));
+
+        res.json(result);
+    } catch (err) {
+        handleRouteError(err, res);
+    }
+});
+
+router.get("/next-notification", async (_, res) => {
+    const time = getNextNotificationTime();
+    res.json({ scheduledAt: time ?? null });
+});
+
+const SEND_NOW_CONFIRM_CODE = "поехали";
+
+router.post("/send-now", async (req, res) => {
+    try {
+        const { code } = req.body ?? {};
+        if (typeof code !== "string" || code.trim().toLowerCase() !== SEND_NOW_CONFIRM_CODE) {
+            return res.status(403).json({ error: "Неверный код подтверждения" });
+        }
+
+        const { date, tasks } = await getNextWeekdayHomework();
+
+        if (!tasks || Object.keys(tasks).length === 0) {
+            return res
+                .status(404)
+                .json({ message: "Нет домашнего задания на след учебный день" });
+        }
+
+        const cancelled = cancelPendingNotification();
+        const lessons = tasksToLessons(tasks);
+        await sendToAllMessengers(date, lessons);
+
+        res.json({
+            message: `Отправлено в Telegram и MAX на ${date}`,
+            date,
+            scheduledNotificationCancelled: cancelled,
+            homework: lessons,
+        });
     } catch (err) {
         handleRouteError(err, res);
     }
