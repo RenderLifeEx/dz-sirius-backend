@@ -49,5 +49,7 @@ export function buildHomeworkMessage(
         lines.push("");
     });
 
+    lines.push("📅 Расписание на неделю: https://dz.renderlife.ru/");
+
     return lines.join("\n");
 }
