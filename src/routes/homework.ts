@@ -87,7 +87,7 @@ router.get("/next-notification", async (_, res) => {
     res.json({ scheduledAt: time ?? null });
 });
 
-const SEND_NOW_CONFIRM_CODE = "поехали";
+const SEND_NOW_CONFIRM_CODE = (process.env.SEND_NOW_CODE ?? "поехали").toLowerCase();
 
 router.post("/send-now", async (req, res) => {
     try {
@@ -119,7 +119,7 @@ router.post("/send-now", async (req, res) => {
     }
 });
 
-router.post("/test-insert-bd", async (req, res) => {
+router.post("/test-insert-bd", async (_, res) => {
     try {
         const newHomework = { 'Информатика': 'Написать прогу' }
         await upsertHomework("26.01.2026", newHomework);
@@ -173,7 +173,7 @@ router.post("/test-send-max", async (_, res) => {
     }
 });
 
-router.get("/test-parser", async (req, res) => {
+router.get("/test-parser", async (_, res) => {
     try {
         const currentWeekDays = await fetchAndParseDiary(0);
         const currentWeekDays2 = await fetchAndParseDiary(-1);
