@@ -25,6 +25,7 @@ export function buildHomeworkMessage(
     homeworkItems: Lesson[],
     bold: (text: string) => string,
     isUpdate?: boolean,
+    isAfterVacation?: boolean,
 ): string {
     const header = isUpdate
         ? bold(`❗️ДЗ на ${date} было обновлено ❗️`)
@@ -50,6 +51,12 @@ export function buildHomeworkMessage(
     });
 
     lines.push("📅 Расписание на неделю: https://dz.renderlife.ru/");
+
+    if (isAfterVacation) {
+        lines.push("");
+        lines.push("🎉🎊🥳🎈 " + bold("Поздравляем деток и родителей с окончанием триместра!"));
+        lines.push("Желаем отличного отдыха, ярких впечатлений и сил для нового старта! 🌟✨🏖️🌈💫🎀🥰🎁🌺🎶");
+    }
 
     return lines.join("\n");
 }

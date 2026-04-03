@@ -89,6 +89,20 @@ export async function fetchAndParseDiary(
  * если у второго аккаунта (группа 1) есть английский — добавляет task_group_1
  * к соответствующему уроку из первого аккаунта (группа 2).
  */
+/**
+ * Проверяет, является ли указанная неделя каникульной
+ * (на странице присутствует заголовок h1.page-title с текстом "каникулы")
+ */
+export async function isVacationWeek(weekOffset: number): Promise<boolean> {
+    try {
+        const html = await fetchDiaryPage(weekOffset);
+        const $ = cheerio.load(html);
+        return $("h1.page-title").text().toLowerCase().includes("каникулы");
+    } catch {
+        return false;
+    }
+}
+
 export async function fetchAndParseDiaryMerged(weekOffset: number = 0): Promise<Day[]> {
     const username2 = process.env.SIRIUS_USERNAME_2;
     const password2 = process.env.SIRIUS_PASSWORD_2;

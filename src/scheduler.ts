@@ -1,5 +1,5 @@
-import { fetchAndParseDiaryMerged } from "./diary/parser";
-import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, tasksToLessons, GROUP1_SUFFIX } from "./db/homework";
+import { fetchAndParseDiaryMerged, isVacationWeek } from "./diary/parser";
+import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, getHomeworkRecordForDate, markHomeworkNotified, getDatePlusWeek, tasksToLessons, GROUP1_SUFFIX } from "./db/homework";
 import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./notifications/telegram";
 import { sendMaxNotification, sendMaxAuthErrorNotification } from "./notifications/max";
 
@@ -7,10 +7,11 @@ export async function sendToAllMessengers(
     date: string,
     lessons: ReturnType<typeof tasksToLessons>,
     isUpdate?: boolean,
+    isAfterVacation?: boolean,
 ) {
     const results = await Promise.allSettled([
-        sendTelegramNotification(date, lessons, undefined, isUpdate),
-        sendMaxNotification(date, lessons, undefined, isUpdate),
+        sendTelegramNotification(date, lessons, undefined, isUpdate, isAfterVacation),
+        sendMaxNotification(date, lessons, undefined, isUpdate, isAfterVacation),
     ]);
     results.forEach((result, i) => {
         if (result.status === "rejected") {
@@ -43,8 +44,8 @@ export function cancelPendingNotification(): boolean {
 }
 
 // Время ежедневного планового уведомления
-const NOTIFICATION_HOUR = 17;
-const NOTIFICATION_MINUTE = 30;
+const NOTIFICATION_HOUR = 21;
+const NOTIFICATION_MINUTE = 59;
 
 /** true, если текущее время ≥ 17:40 (плановое уведомление уже ушло) */
 function isAfterDailyNotification(): boolean {
@@ -124,16 +125,37 @@ function scheduleNextNotification() {
                 pendingNotificationTimeout = null;
                 nextNotificationAt = null;
                 try {
-                    const { date, tasks } = await getNextWeekdayHomework();
+                    const { date, tasks, notifiedAt } = await getNextWeekdayHomework();
 
                     if (!tasks || Object.keys(tasks).length === 0) {
-                        console.log(
-                            `Нет ДЗ на ${date} → уведомление не отправлено`,
-                        );
+                        // Нет ДЗ на следующий будний день — возможно каникулы.
+                        // Проверяем есть ли ДЗ через неделю (после каникул).
+                        const dateNextWeek = getDatePlusWeek(date);
+                        const nextWeekRecord = await getHomeworkRecordForDate(dateNextWeek);
+
+                        if (nextWeekRecord?.tasks && Object.keys(nextWeekRecord.tasks).length > 0) {
+                            if (nextWeekRecord.notifiedAt) {
+                                console.log(`ДЗ после каникул (${dateNextWeek}) уже отправлялось → пропускаем`);
+                            } else {
+                                console.log(`Каникулы: нет ДЗ на ${date}, но есть ДЗ на ${dateNextWeek} → отправляем с поздравлением`);
+                                await sendToAllMessengers(dateNextWeek, tasksToLessons(nextWeekRecord.tasks), false, true);
+                                await markHomeworkNotified(dateNextWeek);
+                            }
+                        } else {
+                            console.log(`Нет ДЗ на ${date} и на ${dateNextWeek} → уведомление не отправлено`);
+                        }
+                        scheduleNextNotification();
+                        return;
+                    }
+
+                    if (notifiedAt) {
+                        console.log(`ДЗ на ${date} уже отправлялось (${notifiedAt.toISOString()}) → пропускаем`);
+                        scheduleNextNotification();
                         return;
                     }
 
                     await sendToAllMessengers(date, tasksToLessons(tasks));
+                    await markHomeworkNotified(date);
                 } catch (err) {
                     console.error(
                         "Ошибка при отправке планового уведомления:",
@@ -202,24 +224,45 @@ export function startScheduler() {
                 );
                 const nextWeekDays = await fetchAndParseDiaryMerged(-1);
 
-                for (const day of nextWeekDays) {
-                    const tasks: Record<string, string> = {};
-                    day.lessons.forEach((lesson) => {
-                        tasks[lesson.subject] = lesson.task;
-                        if (lesson.task_group_1) {
-                            tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
+                if (nextWeekDays.length === 0 && await isVacationWeek(-1)) {
+                    // Следующая неделя — каникулы, парсим неделю через две (week.-2)
+                    console.log(`[${now.toISOString()}] Следующая неделя — каникулы, парсим через две недели (week.-2)`);
+                    const afterVacationDays = await fetchAndParseDiaryMerged(-2);
+
+                    for (const day of afterVacationDays) {
+                        const tasks: Record<string, string> = {};
+                        day.lessons.forEach((lesson) => {
+                            tasks[lesson.subject] = lesson.task;
+                            if (lesson.task_group_1) {
+                                tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
+                            }
+                        });
+
+                        if (Object.keys(tasks).length > 0) {
+                            await upsertHomework(day.date, tasks);
+                            console.log(`Сохранено/обновлено ДЗ (после каникул) для ${day.date}`);
                         }
-                    });
+                    }
+                } else {
+                    for (const day of nextWeekDays) {
+                        const tasks: Record<string, string> = {};
+                        day.lessons.forEach((lesson) => {
+                            tasks[lesson.subject] = lesson.task;
+                            if (lesson.task_group_1) {
+                                tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
+                            }
+                        });
 
-                    if (Object.keys(tasks).length > 0) {
-                        const { changed } = await upsertHomework(day.date, tasks);
-                        console.log(
-                            `Сохранено/обновлено ДЗ (след. неделя) для ${day.date}`,
-                        );
+                        if (Object.keys(tasks).length > 0) {
+                            const { changed } = await upsertHomework(day.date, tasks);
+                            console.log(
+                                `Сохранено/обновлено ДЗ (след. неделя) для ${day.date}`,
+                            );
 
-                        if (changed && afterNotification && day.date === nextWeekdayDate) {
-                            console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
-                            await sendToAllMessengers(day.date, tasksToLessons(tasks), true);
+                            if (changed && afterNotification && day.date === nextWeekdayDate) {
+                                console.log(`ДЗ на ${day.date} изменилось после планового уведомления → отправляем обновление`);
+                                await sendToAllMessengers(day.date, tasksToLessons(tasks), true);
+                            }
                         }
                     }
                 }

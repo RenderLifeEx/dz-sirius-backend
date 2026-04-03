@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { homework } from "./schema";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Lesson } from "../diary/parser";
 
 export type Tasks = Record<string, string>; // { "Математика": "с. 72 (р.т.)", ... }
@@ -59,6 +59,33 @@ export async function getHomeworkForDate(date: string): Promise<Tasks | null> {
     return result?.tasks ?? null;
 }
 
+/** Возвращает запись ДЗ с задачами и статусом отправки */
+export async function getHomeworkRecordForDate(
+    date: string,
+): Promise<{ tasks: Tasks; notifiedAt: Date | null } | null> {
+    const result = await db.query.homework.findFirst({
+        where: (h, { eq }) => eq(h.date, date),
+        columns: { tasks: true, notifiedAt: true },
+    });
+    return result ?? null;
+}
+
+/** Отмечает ДЗ на дату как отправленное */
+export async function markHomeworkNotified(date: string): Promise<void> {
+    await db
+        .update(homework)
+        .set({ notifiedAt: new Date() })
+        .where(eq(homework.date, date));
+}
+
+/** Возвращает дату + 7 дней в формате "дд.мм.гггг" */
+export function getDatePlusWeek(dateStr: string): string {
+    const [dd, mm, yyyy] = dateStr.split(".");
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    d.setDate(d.getDate() + 7);
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
 export async function getTodayHomework(): Promise<Tasks | null> {
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, "0");
@@ -115,9 +142,10 @@ export async function getAllHomeworkFromToday(): Promise<Array<{ date: string; t
 export async function getNextWeekdayHomework(): Promise<{
     date: string;
     tasks: Tasks | null;
+    notifiedAt: Date | null;
 }> {
     const nextDateStr = getNextWeekdayDate();
-    const tasks = await getHomeworkForDate(nextDateStr);
+    const record = await getHomeworkRecordForDate(nextDateStr);
 
-    return { date: nextDateStr, tasks };
+    return { date: nextDateStr, tasks: record?.tasks ?? null, notifiedAt: record?.notifiedAt ?? null };
 }

@@ -36,6 +36,7 @@ export async function sendTelegramNotification(
     homeworkItems: Lesson[],
     chatId?: string,
     isUpdate?: boolean,
+    isAfterVacation?: boolean,
 ) {
     const targetChatId = chatId ?? TELEGRAM_CHAT_ID;
     if (!TELEGRAM_BOT_TOKEN || !targetChatId) {
@@ -49,7 +50,7 @@ export async function sendTelegramNotification(
         return;
     }
 
-    const message = buildHomeworkMessage(date, homeworkItems, bold, isUpdate);
+    const message = buildHomeworkMessage(date, homeworkItems, bold, isUpdate, isAfterVacation);
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     try {

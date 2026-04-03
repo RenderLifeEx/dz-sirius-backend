@@ -28,6 +28,7 @@ export async function sendMaxNotification(
     homeworkItems: Lesson[],
     channelId?: number,
     isUpdate?: boolean,
+    isAfterVacation?: boolean,
 ): Promise<void> {
     const targetChannelId = channelId ?? MAX_CHANNEL_ID;
 
@@ -49,7 +50,7 @@ export async function sendMaxNotification(
         return;
     }
 
-    const message = buildHomeworkMessage(date, homeworkItems, bold, isUpdate);
+    const message = buildHomeworkMessage(date, homeworkItems, bold, isUpdate, isAfterVacation);
 
     try {
         const bot = getBot();
