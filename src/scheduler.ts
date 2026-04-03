@@ -44,8 +44,8 @@ export function cancelPendingNotification(): boolean {
 }
 
 // Время ежедневного планового уведомления
-const NOTIFICATION_HOUR = 21;
-const NOTIFICATION_MINUTE = 59;
+const NOTIFICATION_HOUR = 22;
+const NOTIFICATION_MINUTE = 20;
 
 /** true, если текущее время ≥ 17:40 (плановое уведомление уже ушло) */
 function isAfterDailyNotification(): boolean {
