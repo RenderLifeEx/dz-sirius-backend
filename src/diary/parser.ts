@@ -23,7 +23,12 @@ export async function fetchAndParseDiary(
 
     try {
         html = await fetchDiaryPage(weekOffset, credentials);
-    } catch (err) {
+    } catch (err: any) {
+        const status = err.response?.status;
+        if (status === 401 || status === 403 || status === 302) {
+            // Настоящая ошибка авторизации — пробрасываем, чтобы вызывающий код мог отреагировать
+            throw err;
+        }
         console.error(
             `Не удалось загрузить страницу для week.${weekOffset}:`,
             err,

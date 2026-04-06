@@ -170,7 +170,7 @@ function scheduleNextNotification() {
     }
 }
 
-export function startScheduler() {
+export function startDiaryParsingScheduler() {
     const fetchAndSave = async () => {
         try {
             const now = new Date();
@@ -185,14 +185,20 @@ export function startScheduler() {
             console.log(
                 `[${now.toISOString()}] Парсинг текущей недели (week.0)`,
             );
-            const currentWeekDays = await fetchAndParseDiaryMerged(0);
-
-            if (currentWeekDays.length === 0) {
-                console.warn("Парсер вернул пустой массив для текущей недели.");
+            let currentWeekDays: Awaited<ReturnType<typeof fetchAndParseDiaryMerged>>;
+            try {
+                currentWeekDays = await fetchAndParseDiaryMerged(0);
+            } catch (err: any) {
+                console.error("Ошибка авторизации при парсинге дневника:", err.message ?? err);
                 await Promise.allSettled([
                     sendTelegramAuthErrorNotification(),
                     sendMaxAuthErrorNotification(),
                 ]);
+                return;
+            }
+
+            if (currentWeekDays.length === 0) {
+                console.log("Парсер вернул пустой массив для текущей недели — вероятно каникулы, уведомление не отправляется.");
                 return;
             }
 

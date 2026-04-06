@@ -2,7 +2,7 @@ import express from "express";
 import homeworkRoutes from "./routes/homework";
 import cors from "cors";
 import bodyParser from "body-parser";
-import { startScheduler } from './scheduler';
+import { startDiaryParsingScheduler } from './scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,7 +16,7 @@ if (isDev) {
     app.use(cors({ origin: corsOrigin }));
 }
 
-startScheduler();
+startDiaryParsingScheduler();
 
 app.use(bodyParser.json());
 app.use("/homework", homeworkRoutes);
