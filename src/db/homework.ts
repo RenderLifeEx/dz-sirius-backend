@@ -78,13 +78,6 @@ export async function markHomeworkNotified(date: string): Promise<void> {
         .where(eq(homework.date, date));
 }
 
-/** Возвращает дату + 7 дней в формате "дд.мм.гггг" */
-export function getDatePlusWeek(dateStr: string): string {
-    const [dd, mm, yyyy] = dateStr.split(".");
-    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    d.setDate(d.getDate() + 7);
-    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
-}
 
 export async function getTodayHomework(): Promise<Tasks | null> {
     const today = new Date();

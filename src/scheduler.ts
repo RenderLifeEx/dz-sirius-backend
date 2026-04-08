@@ -1,5 +1,5 @@
 import { fetchAndParseDiaryMerged, isVacationWeek } from "./diary/parser";
-import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, getHomeworkRecordForDate, markHomeworkNotified, getDatePlusWeek, tasksToLessons, GROUP1_SUFFIX } from "./db/homework";
+import { upsertHomework, getNextWeekdayHomework, getNextWeekdayDate, getHomeworkRecordForDate, markHomeworkNotified, getAllHomeworkFromToday, tasksToLessons, GROUP1_SUFFIX } from "./db/homework";
 import { sendTelegramNotification, sendTelegramAuthErrorNotification } from "./notifications/telegram";
 import { sendMaxNotification, sendMaxAuthErrorNotification } from "./notifications/max";
 
@@ -129,20 +129,21 @@ function scheduleNextNotification() {
 
                     if (!tasks || Object.keys(tasks).length === 0) {
                         // Нет ДЗ на следующий будний день — возможно каникулы.
-                        // Проверяем есть ли ДЗ через неделю (после каникул).
-                        const dateNextWeek = getDatePlusWeek(date);
-                        const nextWeekRecord = await getHomeworkRecordForDate(dateNextWeek);
+                        // Ищем ближайший день с ДЗ в БД (он фиксирован все каникулы).
+                        const upcoming = await getAllHomeworkFromToday();
+                        const first = upcoming.find(r => Object.keys(r.tasks).length > 0);
 
-                        if (nextWeekRecord?.tasks && Object.keys(nextWeekRecord.tasks).length > 0) {
-                            if (nextWeekRecord.notifiedAt) {
-                                console.log(`ДЗ после каникул (${dateNextWeek}) уже отправлялось → пропускаем`);
-                            } else {
-                                console.log(`Каникулы: нет ДЗ на ${date}, но есть ДЗ на ${dateNextWeek} → отправляем с поздравлением`);
-                                await sendToAllMessengers(dateNextWeek, tasksToLessons(nextWeekRecord.tasks), false, true);
-                                await markHomeworkNotified(dateNextWeek);
-                            }
+                        if (!first) {
+                            console.log(`Нет ДЗ на ${date} и нет ближайших ДЗ в базе → уведомление не отправлено`);
                         } else {
-                            console.log(`Нет ДЗ на ${date} и на ${dateNextWeek} → уведомление не отправлено`);
+                            const record = await getHomeworkRecordForDate(first.date);
+                            if (record?.notifiedAt) {
+                                console.log(`Каникулы: ближайшее ДЗ (${first.date}) уже отправлялось → пропускаем`);
+                            } else {
+                                console.log(`Каникулы: нет ДЗ на ${date}, отправляем ближайшее ДЗ (${first.date})`);
+                                await sendToAllMessengers(first.date, tasksToLessons(first.tasks), false, true);
+                                await markHomeworkNotified(first.date);
+                            }
                         }
                         scheduleNextNotification();
                         return;
