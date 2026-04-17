@@ -94,8 +94,8 @@ jobs:
             fi
 
             # Установка нужной версии Node.js
-            nvm install lts/iron
-            nvm use lts/iron
+            nvm install lts/jod
+            nvm use lts/jod
 
             # Проверка версии Node.js
             echo "❇️ Using Node.js version: $(node -v)"

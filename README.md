@@ -71,7 +71,7 @@ pnpm run studio
 pnpm run seed
 
 # Запуск в dev-режиме
-nvm use 20
+nvm use 22
 pnpm run dev
 
 # Запуск в prod-режиме
