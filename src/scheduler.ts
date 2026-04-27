@@ -207,7 +207,7 @@ export function startDiaryParsingScheduler() {
                 const tasks: Record<string, string> = {};
                 day.lessons.forEach((lesson) => {
                     tasks[lesson.subject] = lesson.task;
-                    if (lesson.task_group_1) {
+                    if (lesson.task_group_1 !== undefined) {
                         tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
                     }
                 });
@@ -240,7 +240,7 @@ export function startDiaryParsingScheduler() {
                         const tasks: Record<string, string> = {};
                         day.lessons.forEach((lesson) => {
                             tasks[lesson.subject] = lesson.task;
-                            if (lesson.task_group_1) {
+                            if (lesson.task_group_1 !== undefined) {
                                 tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
                             }
                         });
@@ -255,7 +255,7 @@ export function startDiaryParsingScheduler() {
                         const tasks: Record<string, string> = {};
                         day.lessons.forEach((lesson) => {
                             tasks[lesson.subject] = lesson.task;
-                            if (lesson.task_group_1) {
+                            if (lesson.task_group_1 !== undefined) {
                                 tasks[`${lesson.subject}${GROUP1_SUFFIX}`] = lesson.task_group_1;
                             }
                         });

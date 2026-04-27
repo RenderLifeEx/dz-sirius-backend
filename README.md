@@ -4,7 +4,7 @@
 
 Авторизация: https://class.sirius-ft.ru/authorize?force_login=yes_please
 
-![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
@@ -25,7 +25,7 @@
 
 | Компонент      | Версия  | Назначение                              |
 |----------------|---------|-----------------------------------------|
-| **Node.js**    | 20.x    | Среда выполнения                        |
+| **Node.js**    | 22.x    | Среда выполнения                        |
 | **Express**    | 4.x     | Веб-фреймворк                           |
 | **TypeScript** | 5.x     | Статическая типизация                   |
 | **Drizzle ORM**| 0.43.x  | Работа с БД                             |
@@ -39,7 +39,7 @@
 ## 🚀 Быстрый старт
 
 ### Предварительные требования
-- Node.js v20
+- Node.js v22
 - pnpm
 - Docker v25
 

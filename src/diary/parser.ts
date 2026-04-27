@@ -134,20 +134,32 @@ export async function fetchAndParseDiaryMerged(weekOffset: number = 0): Promise<
         group1Map.set(day.date, subjectMap);
     }
 
-    // Мержим: если английский есть у группы 1 → добавляем task_group_1
+    // Мержим английский: всегда показываем обе группы, если второй аккаунт настроен
     return mainDays.map((day) => {
         const group1Subjects = group1Map.get(day.date);
-        if (!group1Subjects) return day;
 
         const mergedLessons = day.lessons.map((lesson) => {
             if (lesson.subject === ENGLISH_SUBJECT) {
-                const group1Task = group1Subjects.get(ENGLISH_SUBJECT);
-                if (group1Task) {
-                    return { ...lesson, task_group_1: group1Task };
-                }
+                // Если у группы 1 нет задания → пустая строка (отобразится как "—")
+                const group1Task = group1Subjects?.get(ENGLISH_SUBJECT) ?? "";
+                return { ...lesson, task_group_1: group1Task };
             }
             return lesson;
         });
+
+        // Кейс: у группы 1 есть английский, а у группы 2 его нет (был "без задания" → отфильтрован)
+        if (group1Subjects) {
+            const group1EnglishTask = group1Subjects.get(ENGLISH_SUBJECT);
+            const hasEnglishInMain = mergedLessons.some(l => l.subject === ENGLISH_SUBJECT);
+
+            if (group1EnglishTask !== undefined && !hasEnglishInMain) {
+                mergedLessons.push({
+                    subject: ENGLISH_SUBJECT,
+                    task: "",
+                    task_group_1: group1EnglishTask,
+                });
+            }
+        }
 
         return { ...day, lessons: mergedLessons };
     });
