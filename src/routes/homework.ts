@@ -97,12 +97,19 @@ router.post("/send-now", async (req, res) => {
         }
 
         let { date, tasks } = await getNextWeekdayHomework();
-        let isAfterVacation = false;
 
         if (!tasks || Object.keys(tasks).length === 0) {
-            // Следующий будний день пустой (праздник/каникулы) — ищем ближайшее ДЗ в БД
+            // Следующий будний день пустой (праздник/каникулы) — ищем ближайшее ДЗ в БД строго после него
             const upcoming = await getAllHomeworkFromToday();
-            const first = upcoming.find(r => Object.keys(r.tasks).length > 0);
+            const nextWeekdayTs = (() => {
+                const [dd, mm, yyyy] = date.split(".");
+                return new Date(Number(yyyy), Number(mm) - 1, Number(dd)).getTime();
+            })();
+            const first = upcoming.find(r => {
+                if (Object.keys(r.tasks).length === 0) return false;
+                const [dd, mm, yyyy] = r.date.split(".");
+                return new Date(Number(yyyy), Number(mm) - 1, Number(dd)).getTime() > nextWeekdayTs;
+            });
 
             if (!first) {
                 return res
@@ -112,12 +119,11 @@ router.post("/send-now", async (req, res) => {
 
             date = first.date;
             tasks = first.tasks;
-            isAfterVacation = true;
         }
 
         const cancelled = cancelPendingNotification();
         const lessons = tasksToLessons(tasks);
-        await sendToAllMessengers(date, lessons, false, isAfterVacation);
+        await sendToAllMessengers(date, lessons);
 
         res.json({
             message: `Отправлено в Telegram и MAX на ${date}`,
