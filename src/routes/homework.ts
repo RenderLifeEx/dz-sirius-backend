@@ -96,17 +96,28 @@ router.post("/send-now", async (req, res) => {
             return res.status(403).json({ error: "Неверный код подтверждения" });
         }
 
-        const { date, tasks } = await getNextWeekdayHomework();
+        let { date, tasks } = await getNextWeekdayHomework();
+        let isAfterVacation = false;
 
         if (!tasks || Object.keys(tasks).length === 0) {
-            return res
-                .status(404)
-                .json({ message: "Нет домашнего задания на след учебный день" });
+            // Следующий будний день пустой (праздник/каникулы) — ищем ближайшее ДЗ в БД
+            const upcoming = await getAllHomeworkFromToday();
+            const first = upcoming.find(r => Object.keys(r.tasks).length > 0);
+
+            if (!first) {
+                return res
+                    .status(404)
+                    .json({ message: "Нет домашнего задания на след учебный день" });
+            }
+
+            date = first.date;
+            tasks = first.tasks;
+            isAfterVacation = true;
         }
 
         const cancelled = cancelPendingNotification();
         const lessons = tasksToLessons(tasks);
-        await sendToAllMessengers(date, lessons);
+        await sendToAllMessengers(date, lessons, false, isAfterVacation);
 
         res.json({
             message: `Отправлено в Telegram и MAX на ${date}`,

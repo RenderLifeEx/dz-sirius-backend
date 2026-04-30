@@ -223,9 +223,12 @@ export function startDiaryParsingScheduler() {
                 }
             }
 
-            // Дополнительно парсим следующую неделю ТОЛЬКО по пятницам, субботам и воскресеньям
-            // 5 = пятница, 6 = суббота, 0 = воскресенье
-            if ([0, 5, 6].includes(dayOfWeek)) {
+            // Дополнительно парсим следующую неделю по пятницам/субботам/воскресеньям,
+            // а также если у следующего будного дня нет ДЗ в текущей неделе (праздник/каникулы)
+            const nextWeekdayInCurrentWeek = currentWeekDays.find(d => d.date === nextWeekdayDate);
+            const nextWeekdayHasHomework = nextWeekdayInCurrentWeek && nextWeekdayInCurrentWeek.lessons.length > 0;
+
+            if ([0, 5, 6].includes(dayOfWeek) || !nextWeekdayHasHomework) {
                 console.log(
                     `[${now.toISOString()}] Парсинг СЛЕДУЮЩЕЙ недели (week.-1)`,
                 );
